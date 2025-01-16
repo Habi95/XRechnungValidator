@@ -1,0 +1,21 @@
+FROM docker.io/library/openjdk:25-slim
+
+### this is used to change the user agent and is only necessary when attempting to build locally in the "Safe" Network
+RUN echo 'Acquire {  http::User-Agent "Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/70.0.3538.110 Safari/537.36";};' >> /etc/apt/apt.conf
+
+
+RUN apt update && apt install unzip wget -y && mkdir -p /app/validator/reports && mkdir -p /app/validator/testfiles
+
+
+WORKDIR /app/validator
+
+RUN wget -q https://github.com/itplr-kosit/validator/releases/download/v1.5.0/validator-1.5.0-distribution.zip -O /tmp/validator.zip && wget -q https://github.com/itplr-kosit/validator-configuration-xrechnung/releases/download/release-2024-10-31/validator-configuration-xrechnung_3.0.2_2024-10-31.zip -O /tmp/configuration.zip && unzip /tmp/validator.zip -d /app/validator &&  unzip /tmp/configuration.zip -d /app/validator &&  rm /tmp/validator.zip /tmp/configuration.zip
+
+## download sample data
+RUN wget -q "https://raw.githubusercontent.com/itplr-kosit/xrechnung-testsuite/master/src/test/business-cases/standard/01.01a-INVOICE_ubl.xml" -O testfiles/ubl.xml
+
+
+RUN echo 'java -jar /app/validator/validationtool-1.5.0-standalone.jar -s /app/validator/scenarios.xml -r /app/validator -h -o /app/validator/reports/ /app/validator/testfiles/*.xml' >> /app/validator/run.sh && chmod +x /app/validator/run.sh
+
+
+CMD ["/bin/sh", "run.sh"]
